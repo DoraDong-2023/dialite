@@ -13,15 +13,111 @@ import json
 import sys
 import stat
 import shutil
+import requests
 from load_dictionaries import *
 from waitress import serve
+
+import openai
+import logging
+import tenacity as T
+import os, json
+from dotenv import load_dotenv
     
 app = Flask(__name__)
 app.config['query_table_folder'] = os.path.join('data', 'query')
 app.config['integration_set_folder'] = os.path.join('data', 'integration-set')
 
-def QueryGPT3(prompt, api_key):
-    openai.api_key = api_key
+def load_json(filename: str) -> dict:
+    """
+    Load JSON data from a specified file.
+
+    Parameters
+    ----------
+    filename : str
+        The path to the JSON file to be loaded.
+
+    Returns
+    -------
+    dict
+        The data loaded from the JSON file.
+    """
+    with open(filename, 'r') as file:
+        data = json.load(file)
+    return data
+
+def setup_openai(api_key=None, fname=None, mode='azure'):
+    assert mode in {'openai', 'azure'}
+    load_dotenv()
+    #OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'sk-test')
+    OPENAI_API_KEY = api_key if api_key else os.getenv('OPENAI_API_KEY', 'sk-test')
+    if mode == 'openai':
+        openai.api_type = "open_ai"
+        openai.api_base = "https://api.openai.com/v1"
+        openai.api_key = OPENAI_API_KEY
+        secrets = None
+    else:
+        #openai.api_version = "2023-03-15-preview"
+        secrets = load_json(fname) if fname else None
+        openai.api_type = "azure"
+        openai.api_base = secrets['MS_ENDPOINT'] if secrets else None
+        openai.api_key = secrets['MS_KEY'] if secrets else None
+    return secrets
+
+@T.retry(stop=T.stop_after_attempt(5), wait=T.wait_fixed(60), after=lambda s: logging.error(repr(s)))
+def query_openai(prompt, mode='azure', model='gpt-35-turbo', max_tokens=1200, **kwargs):
+    # 240127: update openai version
+    if mode == 'openai':
+        response = openai.chat.completions.create(model=model,
+                                             messages=[{'role': 'user', 'content': prompt}],
+                                             max_tokens=max_tokens,
+                                             **kwargs
+                                             )
+    else:
+        response = openai.chat.completions.create(
+            deployment_id=model,
+            messages=[{'role': 'user', 'content': prompt}],
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+    return response.choices[0].message.content
+
+def generate_completion_stream(model_name, prompt):
+    """
+    Generate completion stream from Ollama models.
+    """
+    api_url = "http://localhost:11434/api/generate"
+    headers = {"Content-Type": "application/json"}
+    payload = {"model": model_name, "prompt": prompt}
+    response = requests.post(api_url, headers=headers, data=json.dumps(payload), stream=True)
+    final_response = ""
+    if response.status_code == 200:
+        for line in response.iter_lines():
+            if line:
+                decoded_line = json.loads(line.decode('utf-8'))
+                if 'response' in decoded_line:
+                    final_response += decoded_line['response']
+        return final_response
+    else:
+        print(f"Error: {response.status_code}")
+        return response.status_code
+
+def LLM_response(chat_prompt, api_key=None, llm_model="gpt-3.5-turbo-0125", history=[], kwargs={}):
+    """
+    Get response from either OpenAI API or Ollama local models.
+    """
+    if llm_model.startswith('gpt-3.5') or llm_model.startswith('gpt-4'):
+        setup_openai('', mode='openai')
+        print(f'Using openai model {llm_model}')
+        response = query_openai(chat_prompt, api_key=api_key, mode="openai", model=llm_model, max_tokens=1000)
+    elif llm_model in ['llama3', 'llama2', 'mistral', 'phi', 'starling-lm', 'codellama', 'vicuna', 'gemma:2b', 'gemma:7b']:
+        response = generate_completion_stream(llm_model, chat_prompt)
+    else:
+        raise NotImplementedError("LLM model not supported.")
+    history.append([chat_prompt, response])
+    return response, history
+
+def QueryGPT3(prompt, api_key, model="gpt-4o-mini"):
+    """openai.api_key = api_key
     response = openai.Completion.create(
     model="text-davinci-003",
     prompt=prompt,
@@ -30,8 +126,9 @@ def QueryGPT3(prompt, api_key):
     top_p=1,
     frequency_penalty=0,
     presence_penalty=0
-    )
-    return response.choices[0]['text']
+    )"""
+    response, _ = LLM_response(prompt, api_key=api_key, llm_model=model)
+    return response
 
 def ConvertTextToTable(text):
     # Splitting the string by newline character
