@@ -12,3 +12,4 @@ zenodo_get>=1.3.4
 waitress>=2.1.2
 tenacity
 python_dotenv
+aioconsole

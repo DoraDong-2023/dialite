@@ -106,9 +106,9 @@ def LLM_response(chat_prompt, api_key=None, llm_model="gpt-3.5-turbo-0125", hist
     Get response from either OpenAI API or Ollama local models.
     """
     if llm_model.startswith('gpt-3.5') or llm_model.startswith('gpt-4'):
-        setup_openai('', mode='openai')
+        setup_openai(api_key, '', mode='openai')
         print(f'Using openai model {llm_model}')
-        response = query_openai(chat_prompt, api_key=api_key, mode="openai", model=llm_model, max_tokens=1000)
+        response = query_openai(chat_prompt, mode="openai", model=llm_model, max_tokens=1000)
     elif llm_model in ['llama3', 'llama2', 'mistral', 'phi', 'starling-lm', 'codellama', 'vicuna', 'gemma:2b', 'gemma:7b']:
         response = generate_completion_stream(llm_model, chat_prompt)
     else:
