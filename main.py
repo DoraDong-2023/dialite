@@ -14,7 +14,7 @@ import sys
 import stat
 import shutil
 import requests
-from load_dictionaries import *
+from load_dictionaries_async import *
 from waitress import serve
 
 import openai
