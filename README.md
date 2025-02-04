@@ -15,6 +15,13 @@ Link to the demo website:
 
 ![dialite blockdiargam](dialite.jpg)*Block Diagram of DIALITE System*
 
+## Demo
+<video width="600" controls>
+  <source src="Test_demo_terminal_250203.mp4" type="video/mp4">
+  Demo for terminal interaction
+</video>
+
+
 ## Abstract
 
 We demonstrate a novel table discovery pipeline called DIALITE that allows users to discover, integrate and analyze open data tables. DIALITE has three main stages. First, it allows users to discover tables from open data platforms using state-of-the-art table discovery techniques. Second, DIALITE integrates the discovered tables to produce an integrated table. Finally, it allows users to analyze the integration result by applying different downstreaming tasks over it. Our pipeline has a flexible architecture such that the user can easily add and compare additional discovery and integration algorithms.
