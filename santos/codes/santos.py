@@ -122,7 +122,7 @@ def computeSynthColumnSemantics(input_table, synth_type_kb):
     #synthInvertedIndex  = {}
     all_column_semantics = {}
     col_id = 0
-    for (columnName, columnData) in input_table.iteritems():
+    for (columnName, columnData) in input_table.items():
         sem = {}
         #creating the lookup table for data lake tables
         if getColumnType(input_table[columnName].tolist()) == 1:
@@ -170,8 +170,8 @@ def computeSynthRelation(inputTable, subjectIndex, synthKB):
                     #find relation semantics for each value pairs of subjectIndex and j
                     for k in range(0,projectedRowsNum):
                         #extract subject and object
-                        sub = preprocessString(str(dataFrameTemp.iloc[k][0]).lower())
-                        obj = preprocessString(str(dataFrameTemp.iloc[k][1]).lower())
+                        sub = preprocessString(str(dataFrameTemp.iloc[k, 0]).lower())
+                        obj = preprocessString(str(dataFrameTemp.iloc[k, 1]).lower())
                         subNull = checkIfNullString(sub)
                         objNull = checkIfNullString(obj)
                         if subNull != 0 and objNull != 0:
@@ -228,8 +228,8 @@ def computeRelationSemantics(input_table, tab_id, LABEL_DICT, FACT_DICT):
                 total_kb_backward_hits = 0
                 for k in range(0, unique_rows_in_pair):
                     #extract subject and object
-                    subject_value = preprocessString(str(column_pairs.iloc[k][0]).lower())
-                    object_value = preprocessString(str(column_pairs.iloc[k][1]).lower())
+                    subject_value = preprocessString(str(column_pairs.iloc[k, 0]).lower())
+                    object_value = preprocessString(str(column_pairs.iloc[k, 1]).lower())
                     is_sub_null = checkIfNullString(subject_value)
                     is_obj_null = checkIfNullString(object_value)
                     if is_sub_null != 0:
@@ -298,7 +298,7 @@ def computeColumnSemantics(input_table, subject_index, LABEL_DICT, TYPE_DICT, CL
     not_found_in_yago = []
     column_dictionary = {}
     subject_semantics = ""
-    for (columnName, columnData) in input_table.iteritems():
+    for (columnName, columnData) in input_table.items():
         if getColumnType(input_table[columnName].tolist()) == 1: #check column Type
             input_table[columnName] = input_table[columnName].map(str)                
             #get unique values in the column and preprocess them.

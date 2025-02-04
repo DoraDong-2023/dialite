@@ -116,7 +116,7 @@ def LLM_response(chat_prompt, api_key=None, llm_model="gpt-3.5-turbo-0125", hist
     history.append([chat_prompt, response])
     return response, history
 
-def QueryGPT3(prompt, api_key, model="gpt-4o-mini"):
+def QueryGPT3(prompt, api_key, model="gpt-4o-mini", verbose=True):
     """openai.api_key = api_key
     response = openai.Completion.create(
     model="text-davinci-003",
@@ -127,23 +127,39 @@ def QueryGPT3(prompt, api_key, model="gpt-4o-mini"):
     frequency_penalty=0,
     presence_penalty=0
     )"""
-    response, _ = LLM_response(prompt, api_key=api_key, llm_model=model)
+    formatted_prompt = prompt + "\nFormat the table output using markdown like (| Col1 | Col2 | Col3 |). Please only respond the table content only, do not give other information."
+    response, _ = LLM_response(formatted_prompt, api_key=api_key, llm_model=model)
+    if verbose:
+        print('Here is what LLM answered:', response)
     return response
 
 def ConvertTextToTable(text):
-    # Splitting the string by newline character
-    rows = text.split('\n')
-    # Extracting column names from the first row
-    columns = [col.strip() for col in rows[1].split('|') if col.strip()]
-    # Extracting the data from the rest of the rows
+    """
+    Convert text-based table representation into a pandas DataFrame.
+
+    Parameters
+    ----------
+    text : str
+        Multiline string containing the table.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame representation of the table.
+    """
+    rows = text.strip().split('\n')
+    # Extract column names from the first row
+    columns = [col.strip() for col in rows[0].split('|') if col.strip()]
+    # Extract the rest of the data
     data_rows = []
-    for row in rows[2:]:
+    for row in rows[1:]:
+        # Check if the row is entirely made up of dashes (separator row)
+        if all(col.strip().replace("-", "") == "" for col in row.split('|')):
+            continue  # Skip separator rows
+        # Process normal data rows
         data_rows.append([col.strip() for col in row.split('|') if col.strip()])
-    columns = data_rows.pop(0)
-    separator = data_rows.pop(0)
-    # Creating pandas DataFrame
+    # Create DataFrame
     df = pd.DataFrame(data_rows, columns=columns)
-    # print the resulting DataFrame
     return df
 
 def find_first_string_col(df):
@@ -618,3 +634,4 @@ if __name__ == "__main__":
         print("Enter Port number:")
         port = int(input())
         app.run(debug=True,port=port)
+
